@@ -5,7 +5,7 @@ from .pattern_util import patterns_list
 
 # ========== Análise Léxica ==========
 # Função que realiza a análise léxica do arquivo de entrada
-def lex_anal(arch):
+def lex_anal(arch : str) -> list:
     tokens = []
     line = 1
     while arch:
@@ -58,3 +58,4 @@ def lex(archive : str, flag : str ="c"):
                 elif val == " ":
                     val = "' '"
                 print(f"[ \033[34m{val}\033[0m  -  \033[32m{token[1]}\033[0m  -  \033[35mLinha {token[2]}\033[0m ]")
+    return tokens
