@@ -1,5 +1,5 @@
 from utils import lex
-from utils import augment_grammar, compute_first_follow, build_slr_table, derv
+from utils import augment_grammar, compute_first_follow, build_slr_table, derv, gramatica
 import sys
 import os
 
@@ -13,10 +13,10 @@ def main():
         print(f"versão {__version__}")
         return
 
-    archive = sys.argv[1]
-    flag = sys.argv[2] if len(sys.argv) > 2 else "c"
+    archive : str = sys.argv[1]
+    flag : str = sys.argv[2] if len(sys.argv) > 2 else "c"
 
-    lex(archive, flag)
+    token_list : list = lex(archive, flag)
 
     if not os.path.exists("data/slr_table.csv"):
         ff_set = compute_first_follow(gramatica)
@@ -25,8 +25,8 @@ def main():
     else:
         print("Arquivo data/slr_table.csv já existe. ✅\n")
 
-    with open(sys.argv[1], 'r') as file:
-        token_list = [line.strip() for line in file if line.strip()]
+    #with open(archive, 'r') as file:
+    #    token_list = [line.strip() for line in file if line.strip()]
 
     derv(token_list)
 
