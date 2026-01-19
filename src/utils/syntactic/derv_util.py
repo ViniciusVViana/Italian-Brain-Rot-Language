@@ -2,7 +2,7 @@
 Modulo para funções relacionadas à derivação de cadeias em uma gramática livre de contexto (CFG).
 """
 import pprint, csv
-from utils import gramatica, ENDMARK, EPS, ALL_NONTERMINALS
+from .gramatica_util import gramatica, ENDMARK, EPS, ALL_NONTERMINALS
 
 class DerivationNode:
     """Classe para representar um nó na árvore de derivação"""
@@ -116,16 +116,19 @@ class DerivationTree:
 
 def read_tuples(tuples_list: list) -> (list, list):
     """Converte uma lista de strings de tokens em uma lista de tuplas (tipo, valor), desconsiderando espaços e comentários."""
-    # Mantém também a lista de linhas originais para referência de erros
-    line_list = [line.split(" - ")[2].strip().strip("[ ]") for line in tuples_list if line and not line.startswith("#") and "ESPACO" not in line and "QUEBRA DE LINHA" not in line]
-    token_tuples = [
-        (token.split("-")[1].strip(), token.split("-")[0].strip().strip("[ ").strip("\"")) 
-        for token in tuples_list 
-        if token.strip() 
-        and not token.startswith("#") 
-        and "ESPACO" not in token
-        and "QUEBRA DE LINHA" not in token
+    # remove comentario, quebra de linha, espaços linhas vazias
+    tuples_list = [
+        token for token in tuples_list 
+        if token[1] != "ESPACO" 
+        and token[1] != "QUEBRA_DE_LINHA" 
+        and token[1] != "COMENTARIO"
+        and token[1] != " "
     ]
+
+    token_tuples = [(token[1], token[0]) for token in tuples_list]
+
+    line_list = [token[2] for token in tuples_list]
+
     for i, token in enumerate(token_tuples):
         if token[0] != "id" and token[0] != "valor_inteiro" and token[0] != "valor_real" and token[0] != "string":
             token_tuples[i] = (token[1], token[1])
