@@ -1,6 +1,6 @@
 """ Modulo para computar os conjuntos FIRST e FOLLOW de uma gramática livre de contexto (CFG) e salvar os resultados em um arquivo CSV. """
 
-from utils import ALL_NONTERMINALS, ALL_TERMINALS, EPS, ENDMARK
+from .gramatica_util import ALL_NONTERMINALS, ALL_TERMINALS, EPS, ENDMARK
 
 import csv, os
 
