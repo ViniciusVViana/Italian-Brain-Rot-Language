@@ -1,6 +1,6 @@
 """ Modulo com funções que criaram a tabela SLR(1) de análise sintática. """
 
-from utils import ALL_TERMINALS, ALL_NONTERMINALS, EPS, ENDMARK
+from .gramatica_util import ALL_TERMINALS, ALL_NONTERMINALS, EPS, ENDMARK
 import csv, os
 from collections import defaultdict
 import pprint
