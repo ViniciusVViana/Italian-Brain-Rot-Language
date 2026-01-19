@@ -3,19 +3,19 @@ patterns_list = [
     (r"saturnita.*", "COMENTARIO"),
 
     # Quebra de linha e espaços
-    (r"\n", "QUEBRA DE LINHA"),
+    (r"\n", "QUEBRA_DE_LINHA"),
     (r"\t", "TABULACAO"),
     (r" ", "ESPACO"),
 
     # Palavras-chave
     (r"tralalero|tralala|porcodio|porcoala", "TIPO_DE_VARIAVEL"),
-    (r"lirili|larila", "INICIO E FIM DE ESTRUTURA DE DECISAO"),
-    (r"dunmadin", "INICIO DE LACO CONTADO"),
-    (r"tung|sahur", "INICIO E FIM DE LACO DE REPETICAO"),
-    (r"chimpanzini", "COMANDO DE SAIDA"),
-    (r"batapim", "COMANDO DE ENTRADA"),
-    (r"delimitare|finitini", "DELIMITADOR DE BLOCO"),
-    (r"tripi|tropa", "VALOR BOOLEANO"),
+    (r"lirili|larila", "INICIO_E_FIM_DE_ESTRUTURA_DE_DECISAO"),
+    (r"dunmadin", "INICIO_DE_LACO_CONTADO"),
+    (r"tung|sahur", "INICIO_E_FIM_DE_LACO_DE_REPETICAO"),
+    (r"chimpanzini", "COMANDO_DE_SAIDA"),
+    (r"batapim", "COMANDO_DE_ENTRADA"),
+    (r"delimitare|finitini", "DELIMITADOR_DE_BLOCO"),
+    (r"tripi|tropa", "VALOR_BOOLEANO"),
 
     # Identificadores (após palavras-chave)
     (r"[a-z][a-zA-Z0-9]*", "id"),
