@@ -114,7 +114,7 @@ class DerivationTree:
             else:
                 print(f"   {i+1}: {nt.symbol} -> ε")
 
-def read_tuples(tuples_list: list) -> (list, list):
+def read_tuples(tuples_list: list) -> tuple[list, list]:
     """Converte uma lista de strings de tokens em uma lista de tuplas (tipo, valor), desconsiderando espaços e comentários."""
     # remove comentario, quebra de linha, espaços linhas vazias
     tuples_list = [
@@ -158,7 +158,7 @@ def read_slr_table() -> dict:
         return {}
     return slr_dict
 
-def parse(token_tuples: list, line_list: list, slr_dict: dict) -> (bool, list, DerivationTree, list):
+def parse(token_tuples: list, line_list: list, slr_dict: dict) -> tuple[bool, list, DerivationTree, list]:
     """Função para analisar uma lista de tuplas de tokens usando um dicionário SLR."""
     stack = [ENDMARK, 0]  # Pilha de estados e símbolos
     input_tokens = token_tuples + [(ENDMARK, ENDMARK)]  # Adiciona marcador de fim
@@ -189,7 +189,7 @@ def parse(token_tuples: list, line_list: list, slr_dict: dict) -> (bool, list, D
         if not action:
             print(f"❌ Erro: Ação inválida para estado {top} e token '{current_token}'")
             return False, stack, derivation_tree
-        if action.startswith("e"):
+        if action.startswith("e"): # ERROR
             # os erros devem ser armazenados em uma lista para serem exibidos no final
             print(f"❌ Erro de sintaxe: entrada inesperada '{current_token}' na linha {line_list[0]}")
             # armazena o erro na lista, junto com informação de que linha o erro é
