@@ -6,55 +6,27 @@ PROGRAMA
     │   └───DECLARACAO
     │       ├───TIPO_DE_VARIAVEL
     │       │   └───tralalero
-    │       ├───id('a')
-    │       ├───ATRIBUICAO
-    │       │   ├───=
-    │       │   └───TERMO
-    │       │       └───valor_inteiro('10')
+    │       ├───id('pinto')
     │       └───;
     └───LISTA_DE_COMANDOS
         ├───COMANDO
         │   └───DECLARACAO
         │       ├───TIPO_DE_VARIAVEL
-        │       │   └───tralalero
-        │       ├───id('b')
-        │       ├───ATRIBUICAO
-        │       │   ├───=
-        │       │   └───TERMO
-        │       │       └───valor_inteiro('5')
+        │       │   └───tralala
+        │       ├───id('teste')
         │       └───;
         └───LISTA_DE_COMANDOS
             ├───COMANDO
             │   └───DECLARACAO
             │       ├───TIPO_DE_VARIAVEL
-            │       │   └───tralalero
-            │       ├───id('resultado')
-            │       ├───ATRIBUICAO
-            │       │   ├───=
-            │       │   └───EXPRESSAO
-            │       │       ├───EXPRESSAO
-            │       │       │   └───TERMO
-            │       │       │       └───id('a')
-            │       │       ├───OPERADOR
-            │       │       │   └───OPERADOR_LOGICO
-            │       │       │       └───&&
-            │       │       └───TERMO
-            │       │           └───id('b')
+            │       │   └───tralala
+            │       ├───id('e')
             │       └───;
             └───LISTA_DE_COMANDOS
-                ├───COMANDO
-                │   └───SAIDA
-                │       ├───chimpanzini
-                │       ├───EXPRESSAO
-                │       │   └───TERMO
-                │       │       └───string('"Resultado da soma: "')
-                │       └───;
-                └───LISTA_DE_COMANDOS
-                    └───COMANDO
-                        └───SAIDA
-                            ├───chimpanzini
-                            ├───EXPRESSAO
-                            │   └───TERMO
-                            │       └───id('resultado')
-                            └───;
+                └───COMANDO
+                    └───DECLARACAO
+                        ├───TIPO_DE_VARIAVEL
+                        │   └───tralala
+                        ├───id('este')
+                        └───;
 ============================================================
