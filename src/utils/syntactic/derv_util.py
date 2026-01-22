@@ -6,10 +6,11 @@ from .gramatica_util import gramatica, ENDMARK, EPS, ALL_NONTERMINALS
 
 class DerivationNode:
     """Classe para representar um nó na árvore de derivação"""
-    def __init__(self, symbol, lexeme=None, state=None, depth=0, parent=None):
+    def __init__(self, symbol, lexeme=None, state=None, depth=0, parent=None, line=None):
         self.symbol = symbol
         self.lexeme = lexeme  # Para terminais, armazena o valor original
         self.state = state
+        self.line = line  # Linha do código-fonte
         self.depth = depth
         self.parent = parent
         self.children = []
@@ -31,9 +32,9 @@ class DerivationTree:
         self.root = None
         self.node_stack = []  # Pilha de nós correspondente à pilha do parser
         self.all_nodes = []   # Todos os nós criados
-    def shift_terminal(self, symbol, lexeme=None, state=None):
+    def shift_terminal(self, symbol, lexeme=None, state=None, line=None):
         """Cria nó terminal durante SHIFT"""
-        terminal_node = DerivationNode(symbol, lexeme, state)
+        terminal_node = DerivationNode(symbol, lexeme, state, line=line)
         self.node_stack.append(terminal_node)
         self.all_nodes.append(terminal_node)
         return terminal_node
@@ -215,15 +216,16 @@ def parse(token_tuples: list, line_list: list, slr_dict: dict) -> tuple[bool, li
             next_state = int(action[1:])
             stack.append(current_token)
             stack.append(next_state)
-            # 🔧 CORREÇÃO: Adiciona terminal à árvore bottom-up
-            derivation_tree.shift_terminal(current_token, current_lexeme, next_state)
+            # 🔧 CORREÇÃO: Adiciona terminal à árvore bottom-up com linha
+            current_line = int(line_list[0]) if line_list and line_list[0] else 0
+            derivation_tree.shift_terminal(current_token, current_lexeme, next_state, line=current_line)
             print(f"   SHIFT: Empilhado '{current_token}' ('{current_lexeme}') e estado {next_state}")
             # Avança para o próximo token
             if input_tokens:
                 current_token_info = input_tokens.pop(0)
                 current_token = current_token_info[0]
                 current_lexeme = current_token_info[1] if len(current_token_info) > 1 else current_token_info[0]
-            if len(line_list) > 1:
+            if len(line_list) > 0:
                 line_list.pop(0)
         elif action.startswith("r"):  # REDUCE
             num_prod = int(action[1:])  # Produção a ser aplicada
@@ -299,7 +301,7 @@ def _write_node_to_file(tree, node, prefix, is_last, is_root, file):
 # Adiciona o método à classe
 DerivationTree._write_node_to_file = _write_node_to_file
 
-def derv(token_list: list) -> list:
+def derv(token_list: list) -> DerivationTree | None:
     """Função principal de derivação"""
     print("🔄 Iniciando análise sintática bottom-up...")
     # Transforma token_list em tuplas (tipo, valor)
@@ -310,7 +312,7 @@ def derv(token_list: list) -> list:
     slr_dict = read_slr_table()
     if not slr_dict:
         print("❌ Erro ao carregar tabela SLR")
-        return
+        return None
     print("✅ Tabela SLR carregada")
     print("=" * 60)
     # Executa análise
@@ -338,4 +340,4 @@ def derv(token_list: list) -> list:
         print("Árvore parcial construída:")
         derivation_tree.print_tree_format()
     print("=" * 60)
-    return final_stack
+    return derivation_tree
