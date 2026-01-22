@@ -1,5 +1,7 @@
 from utils import lex
 from utils import augment_grammar, compute_first_follow, build_slr_table, derv, gramatica
+from utils import analyze_semantic
+from utils.semantic.tac import generate_tac_from_tree
 import sys
 import os
 
@@ -25,10 +27,25 @@ def main():
     else:
         print("Arquivo data/slr_table.csv já existe. ✅\n")
 
-    #with open(archive, 'r') as file:
-    #    token_list = [line.strip() for line in file if line.strip()]
+    derivation_tree = derv(token_list)
 
-    derv(token_list)
+    # semantica
+    if derivation_tree:
+        semantic_ok, symbol_table = analyze_semantic(derivation_tree)
+        if not semantic_ok:
+            sys.exit(1)
+
+        # Geração de código intermediário (TAC)
+        tac_generator = generate_tac_from_tree(derivation_tree, symbol_table)
+
+        # Salva o código TAC em um arquivo
+        output_file = os.path.splitext(archive)[0] + "_tac.txt"
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for line in tac_generator.get_code():
+                f.write(line + '\n')
+        print(f"\n✅ Código TAC salvo em: {output_file}")
+
+    #symbol_table.print_table()
 
 
 
