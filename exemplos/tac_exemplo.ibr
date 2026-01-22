@@ -1,0 +1,4 @@
+tralalero a = 1;
+tralalero b = 1;
+tralalero c = a + b;
+chimpanzini c;

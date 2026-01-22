@@ -1,6 +1,11 @@
 tralalero contador = 0;
 tung contador < 5 sahur
+    porcodio a;
     chimpanzini "Contador: ";
     chimpanzini contador;
+    lirili contador == 1 delimitare
+        porcoala b;
+        chimpanzini "foda";
+    finitini
     contador = contador + 1;
 sahur
