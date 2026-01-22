@@ -1,0 +1,52 @@
+Árvore de Derivação Sintática (Bottom-Up)
+============================================================
+PROGRAMA
+└───LISTA_DE_COMANDOS
+    ├───COMANDO
+    │   └───DECLARACAO
+    │       ├───TIPO_DE_VARIAVEL
+    │       │   └───tralalero
+    │       ├───id('a')
+    │       ├───ATRIBUICAO
+    │       │   ├───=
+    │       │   └───TERMO
+    │       │       └───valor_inteiro('1')
+    │       └───;
+    └───LISTA_DE_COMANDOS
+        ├───COMANDO
+        │   └───DECLARACAO
+        │       ├───TIPO_DE_VARIAVEL
+        │       │   └───tralalero
+        │       ├───id('b')
+        │       ├───ATRIBUICAO
+        │       │   ├───=
+        │       │   └───TERMO
+        │       │       └───valor_inteiro('1')
+        │       └───;
+        └───LISTA_DE_COMANDOS
+            ├───COMANDO
+            │   └───DECLARACAO
+            │       ├───TIPO_DE_VARIAVEL
+            │       │   └───tralalero
+            │       ├───id('c')
+            │       ├───ATRIBUICAO
+            │       │   ├───=
+            │       │   └───EXPRESSAO
+            │       │       ├───EXPRESSAO
+            │       │       │   └───TERMO
+            │       │       │       └───id('a')
+            │       │       ├───OPERADOR
+            │       │       │   └───OPERADOR_ARITMETICO
+            │       │       │       └───+
+            │       │       └───TERMO
+            │       │           └───id('b')
+            │       └───;
+            └───LISTA_DE_COMANDOS
+                └───COMANDO
+                    └───SAIDA
+                        ├───chimpanzini
+                        ├───EXPRESSAO
+                        │   └───TERMO
+                        │       └───id('c')
+                        └───;
+============================================================
