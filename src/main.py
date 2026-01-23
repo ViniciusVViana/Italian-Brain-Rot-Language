@@ -1,9 +1,10 @@
+from pathlib import Path
 from utils import lex
 from utils import augment_grammar, compute_first_follow, build_slr_table, derv, gramatica
-from utils import analyze_semantic
-from utils.semantic.tac import generate_tac_from_tree
+from utils import SemanticAnalyzer, TACGenerator, generate_asm_from_tac
 import sys
 import os
+import subprocess
 
 __version__ = "1.0.0"
 
@@ -16,38 +17,31 @@ def main():
         return
 
     archive : str = sys.argv[1]
-    flag : str = sys.argv[2] if len(sys.argv) > 2 else "c"
+    output_archive : str = sys.argv[2] if len(sys.argv) > 2 else "program.exe"
 
-    token_list : list = lex(archive, flag)
+    """ANALISE LÉXICA"""
+    token_list : list = lex(archive)
 
-    if not os.path.exists("data/slr_table.csv"):
-        ff_set = compute_first_follow(gramatica)
-        augmented_grammar = augment_grammar(gramatica)
-        build_slr_table(augmented_grammar, ff_set)
-    else:
-        print("Arquivo data/slr_table.csv já existe. ✅\n")
+    """ANALISE SINTÁTICA"""
+    ff_set = compute_first_follow(gramatica)
+    augmented_grammar = augment_grammar(gramatica)
+    slr = build_slr_table(augmented_grammar, ff_set)
 
-    derivation_tree = derv(token_list)
+    derivation_tree = derv(token_list, slr)
 
-    # semantica
-    if derivation_tree:
-        semantic_ok, symbol_table = analyze_semantic(derivation_tree)
-        if not semantic_ok:
-            sys.exit(1)
+    #derivation_tree.print_tree_format()
 
-        # Geração de código intermediário (TAC)
-        tac_generator = generate_tac_from_tree(derivation_tree, symbol_table)
+    """ANALISE SEMÂNTICA E GERAÇÃO DE CÓDIGO INTERMEDIÁRIO (TAC)"""
+    sem = SemanticAnalyzer()
 
-        # Salva o código TAC em um arquivo
-        output_file = os.path.splitext(archive)[0] + "_tac.txt"
-        with open(output_file, 'w', encoding='utf-8') as f:
-            for line in tac_generator.get_code():
-                f.write(line + '\n')
-        print(f"\n✅ Código TAC salvo em: {output_file}")
+    sem_errors = sem.analyse(derivation_tree.root)
 
-    #symbol_table.print_table()
-
-
+    if not sem_errors:
+        tac_gen = TACGenerator()
+        tac_code = tac_gen.generate(derivation_tree.root, sem.symbols)
+        asm_path = generate_asm_from_tac(tac_code, Path("out.s"))
+        subprocess.run(["gcc", "out.s", "-o", output_archive])
+        print(f"Assembly gerado em: {asm_path}")
 
 if __name__ == "__main__":
     main()
