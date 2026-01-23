@@ -10,7 +10,7 @@ __version__ = "1.0.0"
 
 def main():
     if len(sys.argv) < 2:
-        sys.exit("Uso: python main.py <argumento(s)>")
+        sys.exit("Uso: ibr <argumento(s)>")
 
     if sys.argv[1] in ("-v", "--version"):
         print(f"versão {__version__}")

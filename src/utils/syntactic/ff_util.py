@@ -58,23 +58,8 @@ def compute_first_follow(grammar: dict) -> dict:
 
     :param grammar: dicionário representando a gramática
     :return: dict com conjuntos FIRST e FOLLOW
-    """
-    # Garante que a pasta data existe
-    ensure_data_folder()
-    
+    """    
     ff_file_path = os.path.join("data", "first_follow.csv")
-    
-    # Verifica se o arquivo first_follow.csv já existe
-    if os.path.exists(ff_file_path):
-        print("O arquivo data/first_follow.csv já existe.")
-        with open(ff_file_path, "r", newline="", encoding="utf-8") as csvfile:
-            reader = csv.DictReader(csvfile)
-            ff_set = {row["non_terminal"]: {
-                "first": set(item.strip().strip("'\"") for item in row["first"].strip("{}").split(", ") if item.strip()) if row["first"] else set(),
-                "follow": set(item.strip().strip("'\"") for item in row["follow"].strip("{}").split(", ") if item.strip()) if row["follow"] else set()
-            } for row in reader}
-            print("Arquivo lido com sucesso. ✅\n")
-        return ff_set
 
     first = {nt: set() for nt in grammar}
     for key in grammar:
