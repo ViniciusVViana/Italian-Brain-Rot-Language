@@ -47,9 +47,8 @@ class SemanticAnalyzer:
     """API"""
     def analyse(self, root: DerivationNode):
         self.visit(root)
-        self.print_table()
         if self.errors:
-            print("Erros semanticos encontrados:")
+            #print("Erros semanticos encontrados:")
             for err in self.errors:
                 print(f" - {err}")
         return self.errors

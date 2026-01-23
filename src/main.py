@@ -41,7 +41,7 @@ def main():
         tac_code = tac_gen.generate(derivation_tree.root, sem.symbols)
         asm_path = generate_asm_from_tac(tac_code, Path("out.s"))
         subprocess.run(["gcc", "out.s", "-o", output_archive])
-        print(f"Assembly gerado em: {asm_path}")
+        subprocess.run(["rm", "out.s"])
 
 if __name__ == "__main__":
     main()

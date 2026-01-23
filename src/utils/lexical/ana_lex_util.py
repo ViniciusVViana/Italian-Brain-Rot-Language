@@ -27,7 +27,6 @@ def lex(archive : str):
     tokens = lex_anal(fl)
         
     if tokens:
-        print("Tokens encontrados:")
         for token in tokens:
             val = token[0]
             if val == "\n":
@@ -36,6 +35,5 @@ def lex(archive : str):
                 val = "\\t"
             elif val == " ":
                 val = "' '"
-            print(f"[ \033[34m{val}\033[0m  -  \033[32m{token[1]}\033[0m  -  \033[35mLinha {token[2]}\033[0m ]")
 
     return tokens

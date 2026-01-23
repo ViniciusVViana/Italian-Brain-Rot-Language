@@ -22,18 +22,18 @@ class TACGenerator:
     def emit(self, instruction: str):
         """Emite uma instrução TAC"""
         self.instructions.append(instruction)
-        print(f"  {len(self.instructions):3d}. {instruction}")
+        #print(f"  {len(self.instructions):3d}. {instruction}")
     
     def generate(self, root: DerivationNode, symbols_from_analyzer) -> list[str]:
         """Gera código TAC a partir da árvore"""
         self.symbols = symbols_from_analyzer
         
-        print("\n🔨 Gerando Código de 3 Endereços")
-        print("=" * 70)
+        #print("\n🔨 Gerando Código de 3 Endereços")
+        #print("=" * 70)
         
         self.visit(root)
         
-        print("=" * 70)
+        #print("=" * 70)
         return self.instructions
     
     def visit(self, node):

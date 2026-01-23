@@ -263,8 +263,6 @@ def tac_file_to_asm(tac_path: Path, asm_path: Path) -> None:
     tac_lines = parse_tac_lines(tac_path.read_text(encoding="utf-8").splitlines())
     asm_lines = translate_tac(tac_lines)
     asm_path.write_text("\n".join(asm_lines) + "\n", encoding="utf-8")
-    print(f"Assembly gerado em: {asm_path}")
-
 
 # API pública para uso pelo projeto
 def generate_asm_from_tac(tac_lines: List[str], asm_path: Path | str = "out.s") -> Path:

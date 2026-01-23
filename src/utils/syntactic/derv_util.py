@@ -158,17 +158,17 @@ def parse(token_tuples: list, line_list: list, slr_dict: dict) -> tuple[bool, li
         # Limite de segurança: verificar imediatamente para que 'continue'
         # dentro do loop não permita ultrapassar o limite.
         if step_count > 1000:
-            print("❌ Muitos passos, parando por segurança")
+            #print("❌ Muitos passos, parando por segurança")
             break
         top = stack[-1]  # Topo da pilha (estado atual)
         action = slr_dict.get(current_token, [])[int(top)] if current_token in slr_dict else ''
-        print(f"Step {step_count}: state: {top}, current_token: {current_token}, action: {action}")
+        #print(f"Step {step_count}: state: {top}, current_token: {current_token}, action: {action}")
         if not action:
-            print(f"❌ Erro: Ação inválida para estado {top} e token '{current_token}'")
+            #print(f"❌ Erro: Ação inválida para estado {top} e token '{current_token}'")
             return False, stack, derivation_tree, error_list
         if action.startswith("e"): # ERROR
             # os erros devem ser armazenados em uma lista para serem exibidos no final
-            print(f"❌ Erro de sintaxe: entrada inesperada '{current_token}' na linha {line_list[0]}")
+            #print(f"❌ Erro de sintaxe: entrada inesperada '{current_token}' na linha {line_list[0]}")
             # armazena o erro na lista, junto com informação de que linha o erro é
             error_list.append(f"Erro de sintaxe: entrada inesperada '{current_token}' na {line_list[0]}")
             current_token = input_tokens.pop(0) if input_tokens else (ENDMARK, ENDMARK)
@@ -182,7 +182,7 @@ def parse(token_tuples: list, line_list: list, slr_dict: dict) -> tuple[bool, li
                 last_error_key = error_key
                 error_streak = 1
             if error_streak >= ERROR_STREAK_LIMIT:
-                print(f"❌ Loop de erro detectado: estado {top} e token '{current_token}' repetidos {error_streak} vezes. Interrompendo.")
+                #print(f"❌ Loop de erro detectado: estado {top} e token '{current_token}' repetidos {error_streak} vezes. Interrompendo.")
                 error_list.append(f"Loop de erro detectado em estado {top} com token '{current_token}'")
                 break
             if len(line_list) > 1:
@@ -195,7 +195,7 @@ def parse(token_tuples: list, line_list: list, slr_dict: dict) -> tuple[bool, li
             # 🔧 CORREÇÃO: Adiciona terminal à árvore bottom-up com linha
             current_line = int(line_list[0]) if line_list and line_list[0] else 0
             derivation_tree.shift_terminal(current_token, current_lexeme, next_state, line=current_line)
-            print(f"   SHIFT: Empilhado '{current_token}' ('{current_lexeme}') e estado {next_state}")
+            #print(f"   SHIFT: Empilhado '{current_token}' ('{current_lexeme}') e estado {next_state}")
             # Avança para o próximo token
             if input_tokens:
                 current_token_info = input_tokens.pop(0)
@@ -213,8 +213,8 @@ def parse(token_tuples: list, line_list: list, slr_dict: dict) -> tuple[bool, li
                 if production in gramatica[nt]:
                     nt_prod = nt
                     break
-            print(f"   REDUCE: Aplicando produção {num_prod}: {nt_prod} -> {' '.join(production)}")
-            print(f"   Removendo {num_symbols} elementos da pilha")
+            #print(f"   REDUCE: Aplicando produção {num_prod}: {nt_prod} -> {' '.join(production)}")
+            #print(f"   Removendo {num_symbols} elementos da pilha")
             # Remove os símbolos da produção da pilha
             for _ in range(num_symbols):
                 if len(stack) > 2:  # Mantém pelo menos $ e estado inicial
@@ -228,16 +228,16 @@ def parse(token_tuples: list, line_list: list, slr_dict: dict) -> tuple[bool, li
                 stack.append(new_state)
                 # 🔧 CORREÇÃO: Cria nó não-terminal conectando aos filhos
                 derivation_tree.reduce_production(nt_prod, production, new_state)
-                print(f"   Empilhado não-terminal '{nt_prod}' e estado {new_state}")
+                #print(f"   Empilhado não-terminal '{nt_prod}' e estado {new_state}")
             else:
-                print(f"❌ Erro: GOTO não encontrado para '{nt_prod}' no estado {stack[-2]}")
+                #print(f"❌ Erro: GOTO não encontrado para '{nt_prod}' no estado {stack[-2]}")
                 return False, stack, derivation_tree, error_list
         elif action == "acc":  # ACCEPT
-            print("✅ Cadeia aceita!")
+            #print("✅ Cadeia aceita!")
             return True, stack, derivation_tree, error_list
-        print(f"   Pilha atual: {stack}")
-        print(f"   Próximo token: {current_token}")
-        print("-" * 60)
+        #print(f"   Pilha atual: {stack}")
+        #print(f"   Próximo token: {current_token}")
+        #print("-" * 60)
         # (cheque de segurança movido para o início do loop)
     return False, stack, derivation_tree, error_list
 
@@ -262,41 +262,36 @@ DerivationTree._write_node_to_file = _write_node_to_file
 
 def derv(token_list: list, slr_table: dict) -> DerivationTree | None:
     """Função principal de derivação"""
-    print("🔄 Iniciando análise sintática bottom-up...")
+    #print("🔄 Iniciando análise sintática bottom-up...")
     # Transforma token_list em tuplas (tipo, valor)
     token_tuples, line_list = read_tuples(token_list)
     #pprint.pprint(token_tuples)
-    print(f"✅ {len(token_tuples)} tokens processados")
+    #print(f"✅ {len(token_tuples)} tokens processados")
     # Usa tabela SLR recebida por parâmetro
     slr_dict = slr_table
     if not slr_dict:
-        print("❌ Tabela SLR vazia ou inválida (parâmetro)")
+        #print("❌ Tabela SLR vazia ou inválida (parâmetro)")
         return None
-    print("✅ Tabela SLR carregada (parâmetro)")
-    print("=" * 60)
+    #print("✅ Tabela SLR carregada (parâmetro)")
+    #print("=" * 60)
     # Executa análise
     success, final_stack, derivation_tree, errors = parse(token_tuples, line_list, slr_dict)
-    print("=" * 60)
+    #print("=" * 60)
     if success:
-        print("🎉 ANÁLISE SINTÁTICA CONCLUÍDA COM SUCESSO!")
-        print("=" * 60)
-        print("Erros encontrados durante a análise (se houver):")
+        #print("🎉 ANÁLISE SINTÁTICA CONCLUÍDA COM SUCESSO!")
+        #print("=" * 60)
+        #print("Erros encontrados durante a análise (se houver):")
         if errors:
             for err in errors:
                 print(f" - {err}")
-        else:
-            print(" Nenhum erro encontrado.")
-        # Salva a árvore em arquivo
-
+        
     else:
-        print("❌ ANÁLISE SINTÁTICA FALHOU!")
-        print("\nErros encontrados durante a análise (se houver):")
+        #print("❌ ANÁLISE SINTÁTICA FALHOU!")
+        #print("\nErros encontrados durante a análise (se houver):")
         if errors:
             for err in errors:
                 print(f" - {err}")
-        else:
-            print(" Nenhum erro encontrado.")
-        print("Árvore parcial construída:")
+        #print("Árvore parcial construída:")
         derivation_tree.print_tree_format()
-    print("=" * 60)
+    #print("=" * 60)
     return derivation_tree

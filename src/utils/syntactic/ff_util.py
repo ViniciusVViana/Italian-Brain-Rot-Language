@@ -4,13 +4,6 @@ from .gramatica_util import ALL_NONTERMINALS, ALL_TERMINALS, EPS, ENDMARK
 
 import csv, os
 
-# Função para criar pasta data
-def ensure_data_folder():
-    """Garante que a pasta 'data' existe"""
-    if not os.path.exists("data"):
-        os.makedirs("data")
-        print("Pasta 'data' criada ✅")
-
 def compute_first(prod_list:list, grammar:dict) -> set:
     """
     computa o conjunto FIRST para uma produção

@@ -3,14 +3,6 @@
 from .gramatica_util import ALL_TERMINALS, ALL_NONTERMINALS, EPS, ENDMARK
 import csv, os
 from collections import defaultdict
-import pprint
-
-# Função para criar pasta data
-def ensure_data_folder() -> None:
-    """Garante que a pasta 'data' existe"""
-    if not os.path.exists("data"):
-        os.makedirs("data")
-        print("Pasta 'data' criada ✅")
 
 def augment_grammar(grammar: dict) -> dict:
     """
@@ -173,17 +165,11 @@ def build_slr_table(grammar: dict, first_follow: dict, debug: bool = False) -> d
     for lhs, prods in original_grammar.items():
         for prod in prods:
             productions.append((lhs, prod))
-    
-    if debug: print(f"Debug: Encontradas {len(productions)} produções para redução:")
-    for i, (lhs, prod) in enumerate(productions):
-        if debug: print(f"  {i}: {lhs} -> {prod}")
 
     # Preenche a tabela
     for state_num, state in enumerate(states):
-        if debug: print(f"\nDebug: Analisando Estado {state_num}:")
         for item in state:
             lhs, before_dot, after_dot = item
-            if debug: print(f"  Item: {lhs} -> {list(before_dot)} • {list(after_dot)}")
             
             # Shift: A -> α•aβ onde a é terminal
             if after_dot and after_dot[0] in ALL_TERMINALS:
@@ -191,41 +177,27 @@ def build_slr_table(grammar: dict, first_follow: dict, debug: bool = False) -> d
                 if (state_num, terminal) in transitions:
                     next_state = transitions[(state_num, terminal)]
                     table['action'][state_num][terminal] = f's{next_state}'
-                    if debug: print(f"    Shift {terminal} -> Estado {next_state}")
             # Reduce: A -> α• onde A ≠ S' (item completo)
             elif not after_dot and lhs != "S'":
-                try:
-                    prod_num = productions.index((lhs, list(before_dot)))
-                    if debug: print(f"    Item de redução encontrado: {lhs} -> {list(before_dot)} (produção {prod_num})")
+                prod_num = productions.index((lhs, list(before_dot)))
+                
+                # Para cada símbolo no FOLLOW(A)
+                if lhs in first_follow:
+                    follow_set = first_follow[lhs]['follow']
                     
-                    # Para cada símbolo no FOLLOW(A)
-                    if lhs in first_follow:
-                        follow_set = first_follow[lhs]['follow']
-                        if debug: print(f"    FOLLOW({lhs}) = {follow_set}")
+                    for symbol in follow_set:
+                        if symbol in ALL_TERMINALS or symbol == ENDMARK:
+                            table['action'][state_num][symbol] = f'r{prod_num}'
                         
-                        for symbol in follow_set:
-                            if debug: print(f"        Considerando símbolo de FOLLOW: {symbol}")
-                            if symbol in ALL_TERMINALS or symbol == ENDMARK:
-                                table['action'][state_num][symbol] = f'r{prod_num}'
-                                if debug: print(f"    Redução r{prod_num} em {symbol}")
-                    else:
-                        if debug: print(f"    ERRO: {lhs} não encontrado em first_follow!")
-                        
-                except ValueError as e:
-                    if debug: print(f"    ERRO: Produção {lhs} -> {list(before_dot)} não encontrada nas produções!")
-                    if debug: print(f"    Produções disponíveis: {productions}")
-
             # Accept: S' -> S•
             elif not after_dot and lhs == "S'":
                 table['action'][state_num][ENDMARK] = 'acc'
-                if debug: print(f"    Accept em {ENDMARK}")
 
         # GOTO para não-terminais
         for nt in ALL_NONTERMINALS:
             if (state_num, nt) in transitions:
                 next_state = transitions[(state_num, nt)]
                 table['goto'][state_num][nt] = next_state
-                if debug: print(f"    GOTO {nt} -> Estado {next_state}")
 
     # linha da action que tenham redução devem ser preenchidas com redução por completo
     # ALL_TERMINALS é um `set`, não suportando concatenação com lista. Convertemos
@@ -245,7 +217,7 @@ def build_slr_table(grammar: dict, first_follow: dict, debug: bool = False) -> d
             if terminal not in table['action'][state]:
                 table['action'][state][terminal] = 'error'
 
-    print("\nTabela SLR(1) construída com sucesso. ✅")
+    #print("\nTabela SLR(1) construída com sucesso. ✅")
 
     # Converte para formato columnar: símbolo -> lista por estado
     terminals = sorted(ALL_TERMINALS) + [ENDMARK]
