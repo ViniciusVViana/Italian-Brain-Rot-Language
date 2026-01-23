@@ -148,46 +148,7 @@ def compute_lr0_states(grammar: dict) -> tuple:
     
     return states, transitions
 
-def save_slr_table(table: dict, filename: str = "slr_table.csv") -> None:
-    """
-    Salva a tabela SLR(1) em um arquivo CSV
-    
-    :param table: tabela SLR(1)
-    :param filename: nome do arquivo
-    """
-    ensure_data_folder()  # Cria a pasta se não existir
-    filepath = os.path.join("data", filename)
-    
-    with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
-        writer = csv.writer(csvfile)
-        
-        # Cabeçalho
-        terminals = sorted(ALL_TERMINALS) + [ENDMARK]
-        nonterminals = sorted(ALL_NONTERMINALS)
-        header = ['State'] + [t for t in terminals] + [nt for nt in nonterminals]
-        writer.writerow(header)
-        
-        # Estados
-        max_state = max(max(table['action'].keys(), default=-1), max(table['goto'].keys(), default=-1))
-        
-        for state in range(max_state + 1):
-            row = [state]
-            
-            # Colunas ACTION
-            for terminal in terminals:
-                action = table['action'][state].get(terminal, '')
-                row.append(action)
-            
-            # Colunas GOTO
-            for nt in nonterminals:
-                goto = table['goto'][state].get(nt, '')
-                row.append(goto)
-            
-            writer.writerow(row)
-    
-    print(f"Tabela SLR(1) salva em 'data/{filename}' ✅")
-
-def build_slr_table(grammar: dict, first_follow: dict, debug: bool = False) -> None:
+def build_slr_table(grammar: dict, first_follow: dict, debug: bool = False) -> dict:
     """
     Constrói a tabela de análise SLR(1) e salva em um arquivo CSV
 
@@ -196,10 +157,7 @@ def build_slr_table(grammar: dict, first_follow: dict, debug: bool = False) -> N
     :param debug: habilita a saída de depuração
     :return: None
     """
-    slr_file_path = os.path.join("data", "slr_table.csv")
-    if os.path.exists(slr_file_path):
-        print("\tO arquivo data/slr_table.csv já existe. ✅")
-        return
+    # Construção em memória; não depende de arquivo CSV.
 
     states, transitions = compute_lr0_states(grammar)
     
@@ -208,7 +166,7 @@ def build_slr_table(grammar: dict, first_follow: dict, debug: bool = False) -> N
         'action': defaultdict(dict),
         'goto': defaultdict(dict)
     }
-    
+
     # Enumera as produções ORIGINAIS (sem S') para os números das reduções
     original_grammar = {k: v for k, v in grammar.items() if k != "S'"}
     productions = []
@@ -288,4 +246,31 @@ def build_slr_table(grammar: dict, first_follow: dict, debug: bool = False) -> N
                 table['action'][state][terminal] = 'error'
 
     print("\nTabela SLR(1) construída com sucesso. ✅")
-    save_slr_table(table)
+
+    # Converte para formato columnar: símbolo -> lista por estado
+    terminals = sorted(ALL_TERMINALS) + [ENDMARK]
+    nonterminals = sorted(ALL_NONTERMINALS)
+
+    max_state = max(
+        max(table['action'].keys(), default=-1),
+        max(table['goto'].keys(), default=-1)
+    )
+
+    columns: dict[str, list[str]] = {}
+
+    # ACTION (terminais)
+    for t in terminals:
+        col: list[str] = []
+        for s in range(max_state + 1):
+            col.append(table['action'][s].get(t, 'error'))
+        columns[t] = col
+
+    # GOTO (não-terminais)
+    for nt in nonterminals:
+        col: list[str] = []
+        for s in range(max_state + 1):
+            v = table['goto'][s].get(nt, '')
+            col.append(str(v) if v != '' else '')
+        columns[nt] = col
+
+    return columns
