@@ -97,14 +97,5 @@ def compute_first_follow(grammar: dict) -> dict:
     # junta em first e follow em um único dicionario
     ff_set = {nt: {"first": first[nt], "follow": follow[nt]} for nt in grammar}
 
-    # escreve em um arquivo .csv na pasta data
-    with open(ff_file_path, "w", newline="", encoding="utf-8") as csvfile:
-        fieldnames = ["non_terminal", "first", "follow"]
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-
-        writer.writeheader()
-        for nt, sets in ff_set.items():
-            writer.writerow({"non_terminal": nt, "first": sets["first"], "follow": sets["follow"]})
-
-    print("Arquivo data/first_follow.csv criado e salvo com sucesso. ✅\n")
+    
     return ff_set
