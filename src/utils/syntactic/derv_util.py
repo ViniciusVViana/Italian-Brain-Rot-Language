@@ -135,30 +135,6 @@ def read_tuples(tuples_list: list) -> tuple[list, list]:
             token_tuples[i] = (token[1], token[1])
     return token_tuples, line_list
 
-def read_slr_table() -> dict:
-    slr_dict = {}
-    try:
-        with open("data/slr_table.csv", 'r', encoding='utf-8') as csvfile:
-            reader = csv.reader(csvfile)
-            headers = next(reader)
-            column_names = headers[1:]  # Exclui 'State'
-            for col_name in column_names:
-                slr_dict[col_name] = []
-            for row in reader:
-                values = row[1:]    # Valores das outras colunas
-                for i, col_name in enumerate(column_names):
-                    if i < len(values):
-                        slr_dict[col_name].append(values[i])
-                    else:
-                        slr_dict[col_name].append('')
-    except FileNotFoundError:
-        print(f"❌ Arquivo não encontrado: data/slr_table.csv")
-        return {}
-    except Exception as e:
-        print(f"❌ Erro ao ler arquivo SLR: {e}")
-        return {}
-    return slr_dict
-
 def parse(token_tuples: list, line_list: list, slr_dict: dict) -> tuple[bool, list, DerivationTree, list]:
     """Função para analisar uma lista de tuplas de tokens usando um dicionário SLR."""
     stack = [ENDMARK, 0]  # Pilha de estados e símbolos
@@ -189,7 +165,7 @@ def parse(token_tuples: list, line_list: list, slr_dict: dict) -> tuple[bool, li
         print(f"Step {step_count}: state: {top}, current_token: {current_token}, action: {action}")
         if not action:
             print(f"❌ Erro: Ação inválida para estado {top} e token '{current_token}'")
-            return False, stack, derivation_tree
+            return False, stack, derivation_tree, error_list
         if action.startswith("e"): # ERROR
             # os erros devem ser armazenados em uma lista para serem exibidos no final
             print(f"❌ Erro de sintaxe: entrada inesperada '{current_token}' na linha {line_list[0]}")
@@ -265,23 +241,6 @@ def parse(token_tuples: list, line_list: list, slr_dict: dict) -> tuple[bool, li
         # (cheque de segurança movido para o início do loop)
     return False, stack, derivation_tree, error_list
 
-def save_derivation_tree(tree: DerivationTree, filename: str = "data/derivation_tree.txt"):
-    """Salva a árvore de derivação em um arquivo"""
-    try:
-        with open(filename, 'w', encoding='utf-8') as f:
-            f.write("Árvore de Derivação Sintática (Bottom-Up)\n")
-            f.write("=" * 60 + "\n")
-            
-            if tree.root:
-                tree._write_node_to_file(tree.root, "", True, True, f)
-            else:
-                f.write("Árvore vazia ou incompleta\n")
-            f.write("=" * 60 + "\n")
-        print("=" * 60)
-        print(f"💾 Árvore bottom-up salva em: {filename}")
-    except Exception as e:
-        print(f"❌ Erro ao salvar árvore: {e}")
-
 def _write_node_to_file(tree, node, prefix, is_last, is_root, file):
     """Escreve um nó no arquivo com formatação de árvore"""
     display_text = str(node)
@@ -301,19 +260,19 @@ def _write_node_to_file(tree, node, prefix, is_last, is_root, file):
 # Adiciona o método à classe
 DerivationTree._write_node_to_file = _write_node_to_file
 
-def derv(token_list: list) -> DerivationTree | None:
+def derv(token_list: list, slr_table: dict) -> DerivationTree | None:
     """Função principal de derivação"""
     print("🔄 Iniciando análise sintática bottom-up...")
     # Transforma token_list em tuplas (tipo, valor)
     token_tuples, line_list = read_tuples(token_list)
     #pprint.pprint(token_tuples)
     print(f"✅ {len(token_tuples)} tokens processados")
-    # Carrega tabela SLR
-    slr_dict = read_slr_table()
+    # Usa tabela SLR recebida por parâmetro
+    slr_dict = slr_table
     if not slr_dict:
-        print("❌ Erro ao carregar tabela SLR")
+        print("❌ Tabela SLR vazia ou inválida (parâmetro)")
         return None
-    print("✅ Tabela SLR carregada")
+    print("✅ Tabela SLR carregada (parâmetro)")
     print("=" * 60)
     # Executa análise
     success, final_stack, derivation_tree, errors = parse(token_tuples, line_list, slr_dict)
@@ -328,7 +287,7 @@ def derv(token_list: list) -> DerivationTree | None:
         else:
             print(" Nenhum erro encontrado.")
         # Salva a árvore em arquivo
-        save_derivation_tree(derivation_tree)
+
     else:
         print("❌ ANÁLISE SINTÁTICA FALHOU!")
         print("\nErros encontrados durante a análise (se houver):")
