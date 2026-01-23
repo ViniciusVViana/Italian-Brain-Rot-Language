@@ -3,339 +3,341 @@ Analisador Semântico - Percorre a árvore de derivação e valida regras semân
 Implementado com funções puras, sem classes (consistente com léxico e sintático)
 """
 
-from .table import SymbolTable, SymbolType, IBRL_TYPE_MAP
+from ..syntactic import DerivationNode
 
-_symbol_table = None
-_errors = []
+class SymbolEntry:
+    def __init__(self, name: str, tipo: str, scope: int):
+        self.name: str = name
+        self.tipo: str = tipo
+        self.scope: int = scope
 
-def analyze_semantic(derivation_tree):
-    """
-    Função principal de análise semântica - percorre a árvore de derivação
-    
-    Args:
-        derivation_tree: DerivationTree do parser sintático
+class SemanticAnalyzer:
+    def __init__(self):
+        self.symbols: list[SymbolEntry] = []
+        self.scope_stack: list[int] = [0]
+        self.scope_id = 0
+        self.errors: list[str] = []
+
+    def error(self, message: str):
+        self.errors.append(f"Erro semântico: {message}")
+
+    def enter_scope(self):
+        self.scope_id += 1
+        self.scope_stack.append(self.scope_id)
+
+    def exit_scope(self):
+        if len(self.scope_stack) > 1:
+            self.scope_stack.pop()
         
-    Returns:
-        tuple: (bool, SymbolTable) - (sucesso, tabela de símbolos)
-    """
-    global _symbol_table, _errors
-    
-    _symbol_table = SymbolTable()
-    _errors = []
-    
-    print("\n🔍 Iniciando análise semântica...")
-    print("=" * 70)
-    
-    if derivation_tree.root:
-        _visit_node(derivation_tree.root)
-    else:
-        print("❌ Árvore de derivação vazia!")
-        return False, _symbol_table
-    
-    # Exibe resultados
-    _symbol_table.print_table()
-    _symbol_table.print_errors()
-    
-    has_errors = len(_symbol_table.errors) > 0
-    
-    if not has_errors:
-        print("\n✅ Análise semântica concluída com sucesso!")
-    else:
-        print(f"\n❌ Análise semântica falhou com {len(_symbol_table.errors)} erro(s)")
-    
-    print("=" * 70)
-    return not has_errors, _symbol_table
+    def declare(self, name: str, tipo: str):
+        cur = self.scope_stack[-1]
+        for s in self.symbols:
+            if s.name == name and s.scope == cur:
+                self.error(f"Variável {name} ja declarada no escopo {cur}")
+                return
+        self.symbols.append(SymbolEntry(name, tipo, cur))
 
-
-def _visit_node(node):
-    """Visita recursivamente cada nó da árvore e executa ações semânticas"""
-    
-    symbol = node.symbol
-    
-    # Ações semânticas baseadas no não-terminal
-    if symbol == "DECLARACAO":
-        _handle_declaration(node)
-    
-    elif symbol in ("BLOCO_DECISAO", "BLOCO_REPETICAO"):
-        _handle_block(node)
-    
-    elif symbol == "ATRIBUICAO":
-        _handle_assignment(node)
-    
-    elif symbol == "EXPRESSAO":
-        _handle_expression(node)
-    
-    elif symbol == "ENTRADA":
-        _handle_input(node)
-    
-    elif symbol == "SAIDA":
-        _handle_output(node)
-    
-    elif symbol == "DECISAO":
-        _handle_decision(node)
-    
-    elif symbol in ("LACO_DE_REPETICAO", "LACO_CONTADO"):
-        _handle_loop(node)
-    
-    # Continua percorrendo filhos para outros nós
-    else:
-        for child in node.children:
-            _visit_node(child)
-
-
-def _handle_declaration(node):
-    """
-    DECLARACAO -> TIPO_DE_VARIAVEL id ;
-    DECLARACAO -> TIPO_DE_VARIAVEL id ATRIBUICAO ;
-    """
-    children = node.children
-    
-    if len(children) < 3:
-        return
-    
-    tipo_node = children[0]
-    id_node = children[1]
-    
-    # Pega o lexema do tipo
-    if tipo_node.children and len(tipo_node.children) > 0:
-        tipo_lexeme = tipo_node.children[0].lexeme
-    else:
-        tipo_lexeme = tipo_node.lexeme
-    
-    var_name = id_node.lexeme
-    line = _extract_line(id_node)
-    
-    # Declara na tabela de símbolos
-    success = _symbol_table.declare(var_name, tipo_lexeme, line)
-    
-    if success:
-        print(f"  ✓ Variável '{var_name}' declarada como {tipo_lexeme} (linha {line})")
-    
-    # Se houver atribuição inicial, valida
-    if len(children) >= 4 and children[2].symbol == "ATRIBUICAO":
-        _visit_node(children[2])
-
-
-def _handle_block(node):
-    """Entra em novo escopo, visita filhos, sai do escopo"""
-    print(f"  → Entrando em escopo ({node.symbol})")
-    _symbol_table.push_scope()
-    
-    for child in node.children:
-        if child.symbol not in ("delimitare", "finitini", "sahur"):
-            _visit_node(child)
-    
-    _symbol_table.pop_scope()
-    print(f"  ← Saindo de escopo")
-
-
-def _handle_assignment(node):
-    """
-    ATRIBUICAO -> = TERMO
-    ATRIBUICAO -> = EXPRESSAO
-    ATRIBUICAO -> TERMO = EXPRESSAO ;
-    """
-    children = node.children
-    
-    if len(children) < 2:
-        return
-    
-    if children[0].symbol == "=":
-        return
-    
-    if len(children) >= 3 and children[1].lexeme == "=":
-        var_node = children[0]
-        expr_node = children[2]
-        
-        var_name = _extract_id_from_termo(var_node)
-        if not var_name:
-            return
-        
-        line = _extract_line(var_node)
-        
-        symbol = _symbol_table.resolve(var_name)
-        if not symbol:
-            error_msg = f"❌ Erro semântico (linha {line}): Variável '{var_name}' não declarada"
-            _symbol_table.errors.append(error_msg)
-            print(f"  {error_msg}")
-            return
-        
-        expr_type = _handle_expression(expr_node)
-        
-        if expr_type and expr_type != symbol.sym_type:
-            if not _symbol_table._is_compatible(symbol.sym_type, expr_type):
-                error_msg = f"❌ Erro semântico (linha {line}): Atribuição incompatível. '{var_name}' é {symbol.sym_type.value}, mas expressão é {expr_type.value}"
-                _symbol_table.errors.append(error_msg)
-                print(f"  {error_msg}")
-            else:
-                print(f"  ⚠️  Coerção de tipo: {expr_type.value} → {symbol.sym_type.value}")
-        else:
-            print(f"  ✓ Atribuição válida para '{var_name}' (linha {line})")
-
-
-def _handle_expression(node):
-    """
-    Infere o tipo de uma expressão recursivamente
-    Returns: SymbolType ou None
-    """
-    children = node.children
-    
-    if not children:
+    def lookup(self, name: str) -> SymbolEntry | None:
+        for sc in reversed(self.scope_stack):
+            for s in self.symbols:
+                if s.name == name and s.scope == sc:
+                    return s
         return None
-    
-    # EXPRESSAO -> TERMO
-    if len(children) == 1 and children[0].symbol == "TERMO":
-        return _get_termo_type(children[0])
-    
-    # EXPRESSAO -> EXPRESSAO OPERADOR TERMO
-    if len(children) == 3:
-        left_type = _handle_expression(children[0])
-        operator_node = children[1]
-        right_type = _get_termo_type(children[2])
-        
-        return _validate_operation(left_type, operator_node, right_type)
-    
-    return None
 
+    """API"""
+    def analyse(self, root: DerivationNode):
+        self.visit(root)
+        self.print_table()
+        if self.errors:
+            print("Erros semanticos encontrados:")
+            for err in self.errors:
+                print(f" - {err}")
+        return self.errors
 
-def _get_termo_type(termo_node):
-    """Infere o tipo de um TERMO"""
-    if not termo_node.children:
-        return None
-    
-    child = termo_node.children[0]
-    
-    if child.symbol == "id":
-        var_name = child.lexeme
-        symbol = _symbol_table.resolve(var_name)
-        return symbol.sym_type if symbol else None
-    
-    if child.symbol == "valor_inteiro":
-        return SymbolType.INT
-    elif child.symbol == "valor_real":
-        return SymbolType.FLOAT
-    elif child.symbol == "caractere":
-        return SymbolType.CHAR
-    elif child.symbol == "VALOR_BOOL":
-        return SymbolType.BOOL
-    
-    return None
-
-
-def _validate_operation(left_type, operator_node, right_type):
-    """Valida operação entre dois tipos e retorna o tipo resultante"""
-    if not left_type or not right_type:
-        return None
-    
-    if not operator_node.children:
-        return None
-    
-    op_type_node = operator_node.children[0]
-    op_symbol = op_type_node.symbol
-    
-    # OPERADORES ARITMÉTICOS
-    if op_symbol == "OPERADOR_ARITMETICO":
-        if left_type in (SymbolType.INT, SymbolType.FLOAT) and right_type in (SymbolType.INT, SymbolType.FLOAT):
-            return SymbolType.FLOAT if (left_type == SymbolType.FLOAT or right_type == SymbolType.FLOAT) else SymbolType.INT
-        else:
-            _symbol_table.errors.append(f"❌ Operador aritmético requer tipos numéricos, recebeu {left_type.value} e {right_type.value}")
+    """visitor"""
+    def visit(self, node):
+        if node is None:
             return None
-    
-    # OPERADORES RELACIONAIS
-    elif op_symbol == "OPERADOR_RELACIONAL":
-        if left_type == right_type or _symbol_table._is_compatible(left_type, right_type):
-            return SymbolType.BOOL
-        else:
-            _symbol_table.errors.append(f"❌ Operador relacional requer tipos compatíveis, recebeu {left_type.value} e {right_type.value}")
-            return SymbolType.BOOL
-    
-    # OPERADORES LÓGICOS
-    elif op_symbol == "OPERADOR_LOGICO":
-        if left_type == SymbolType.BOOL and right_type == SymbolType.BOOL:
-            return SymbolType.BOOL
-        else:
-            _symbol_table.errors.append(f"❌ Operador lógico requer booleanos, recebeu {left_type.value} e {right_type.value}")
-            return SymbolType.BOOL
-    
-    return None
+        # anotar tipo no próprio nó (deixa pronto pro TAC)
+        if not hasattr(node, "type"):
+            node.type = None
 
+        method = getattr(self, f"visit_{node.symbol}", self.generic_visit)
+        return method(node)
 
-def _handle_input(node):
-    """ENTRADA -> batapim id ;"""
-    if len(node.children) >= 2:
-        id_node = node.children[1]
-        var_name = id_node.lexeme
-        line = _extract_line(id_node)
+    def generic_visit(self, node):
+        for c in getattr(node, "children", []):
+            self.visit(c)
+        return getattr(node, "type", None)
+    
+    # ---------- regras por nó (conforme gramatica_util.py) ----------
+    def visit_PROGRAMA(self, node):
+        # PROGRAMA -> LISTA_DE_COMANDOS
+        for c in node.children:
+            self.visit(c)
+
+    def visit_LISTA_DE_COMANDOS(self, node):
+        for c in node.children:
+            self.visit(c)
+
+    def visit_COMANDO(self, node):
+        for c in node.children:
+            self.visit(c)
+
+    # BLOCO é wrapper: BLOCO -> BLOCO_DECISAO | BLOCO_REPETICAO
+    def visit_BLOCO(self, node):
+        for c in node.children:
+            self.visit(c)
+
+    # BLOCO_DECISAO -> delimitare LISTA_DE_COMANDOS finitini
+    def visit_BLOCO_DECISAO(self, node):
+        self.enter_scope()
+        for c in node.children:
+            self.visit(c)
+        self.exit_scope()
+
+    # BLOCO_REPETICAO -> sahur LISTA_DE_COMANDOS sahur
+    def visit_BLOCO_REPETICAO(self, node):
+        self.enter_scope()
+        for c in node.children:
+            self.visit(c)
+        self.exit_scope()
+
+    # DECLARACAO -> TIPO_DE_VARIAVEL id ATRIBUICAO ;
+    def visit_DECLARACAO(self, node):
+        tipo = None
+        name = None
+        atrib_node = None
+
+        # filhos esperados: [TIPO_DE_VARIAVEL, id, ATRIBUICAO, ;]
+        for c in node.children:
+            if c.symbol == "TIPO_DE_VARIAVEL":
+                tipo = self.visit(c)  # retorna 'tralalero' etc.
+            elif c.symbol == "id":
+                name = c.lexeme if c.lexeme else c.symbol
+            elif c.symbol == "ATRIBUICAO":
+                atrib_node = c
+
+        if tipo is None or name is None:
+            self.error("Declaração mal formada (tipo ou id ausente)")
+            return
+
+        self.declare(name, tipo)
+
+        # Se tem atribuição (= expr), checar tipo
+        if atrib_node:
+            rhs_type = self.visit(atrib_node)
+            # atribuição vazia -> rhs_type None
+            if rhs_type is not None and rhs_type != tipo:
+                self.error(f"Atribuição incompatível em '{name}': {tipo} = {rhs_type}")
+
+    def visit_TIPO_DE_VARIAVEL(self, node):
+        # TIPO_DE_VARIAVEL -> tralalero | tralala | porcodio | porcoala
+        if node.children:
+            node.type = node.children[0].symbol
+            return node.type
+        return None
+
+    # ENTRADA -> batapim id ;
+    def visit_ENTRADA(self, node):
+        # valida se id foi declarado
+        for c in node.children:
+            if c.symbol == "id":
+                name = c.lexeme if c.lexeme else c.symbol
+                if not self.lookup(name):
+                    self.error(f"Variável '{name}' usada em batapim, mas não declarada")
+
+    # SAIDA -> chimpanzini EXPRESSAO ;
+    def visit_SAIDA(self, node):
+        for c in node.children:
+            if c.symbol == "EXPRESSAO":
+                t = self.visit(c)
+                if t is None:
+                    self.error("Expressão inválida em chimpanzini (tipo indefinido)")
+
+    # DECISAO -> lirili EXPRESSAO BLOCO [larila BLOCO|DECISAO]
+    def visit_DECISAO(self, node):
+        # acha a EXPRESSAO (condição)
+        cond_type = None
+        for c in node.children:
+            if c.symbol == "EXPRESSAO":
+                cond_type = self.visit(c)
+                break
+
+        if cond_type is not None and cond_type != "porcoala":
+            self.error(f"Condição do lirili deve ser porcoala, recebido {cond_type}")
+
+        # visita blocos/else
+        for c in node.children:
+            if c.symbol in ("BLOCO", "BLOCO_DECISAO", "BLOCO_REPETICAO", "DECISAO"):
+                self.visit(c)
+
+    # LACO_DE_REPETICAO -> tung EXPRESSAO BLOCO
+    def visit_LACO_DE_REPETICAO(self, node):
+        cond_type = None
+        for c in node.children:
+            if c.symbol == "EXPRESSAO":
+                cond_type = self.visit(c)
+                break
+        if cond_type is not None and cond_type != "porcoala":
+            self.error(f"Condição do tung deve ser porcoala, recebido {cond_type}")
+
+        for c in node.children:
+            if c.symbol == "BLOCO":
+                self.visit(c)
+
+    # ATRIBUICAO pode aparecer em 2 contextos na sua gramática:
+    # 1) Em declaração: ATRIBUICAO -> '=' TERMO | '=' EXPRESSAO | ε
+    # 2) Como comando: ATRIBUICAO -> TERMO '=' EXPRESSAO ';'
+    def visit_ATRIBUICAO(self, node):
+        # caso epsilon
+        if len(node.children) == 0:
+            return None
+
+        # tenta detectar forma: '=' X
+        if len(node.children) >= 2 and node.children[0].symbol == "=":
+            return self.visit(node.children[1])
+
+        # tenta detectar forma: TERMO '=' EXPRESSAO ';'
+        # filhos típicos: [TERMO, '=', EXPRESSAO, ';']
+        if len(node.children) >= 3 and node.children[1].symbol == "=":
+            lhs_type = self.visit(node.children[0])
+            rhs_type = self.visit(node.children[2])
+
+            # lhs deve ser id declarado
+            if node.children[0].children and node.children[0].children[0].symbol == "id":
+                name = node.children[0].children[0].lexeme
+                sym = self.lookup(name)
+                if not sym:
+                    self.error(f"Variável '{name}' não declarada (atribuição)")
+                    return None
+                lhs_type = sym.tipo
+
+            if lhs_type is not None and rhs_type is not None and lhs_type != rhs_type:
+                self.error(f"Atribuição incompatível: {lhs_type} = {rhs_type}")
+
+            return lhs_type
+
+        # fallback
+        return self.generic_visit(node)
+
+    # EXPRESSAO -> EXPRESSAO OPERADOR TERMO | TERMO
+    def visit_EXPRESSAO(self, node):
+        if len(node.children) == 1:
+            node.type = self.visit(node.children[0])
+            return node.type
+
+        # padrão: [EXPRESSAO, OPERADOR, TERMO]
+        left_type = self.visit(node.children[0])
+        op_type = self.visit(node.children[1])  # 'arit'/'rel'/'log'
+        right_type = self.visit(node.children[2])
+
+        if op_type == "arit":
+            if left_type != right_type:
+                self.error("Tipos incompatíveis em operação aritmética")
+            if left_type not in ("tralalero", "tralala"):
+                self.error("Operação aritmética aplicada a tipo não numérico")
+            node.type = left_type
+            return node.type
+
+        if op_type == "rel":
+            # relacional retorna booleano
+            if left_type != right_type:
+                self.error("Comparação relacional entre tipos diferentes")
+            node.type = "porcoala"
+            return node.type
+
+        if op_type == "log":
+            # lógico exige booleano
+            if left_type != "porcoala" or right_type != "porcoala":
+                self.error("Operação lógica exige porcoala em ambos os lados")
+            node.type = "porcoala"
+            return node.type
+
+        # se não souber operador, tenta manter
+        node.type = left_type
+        return node.type
+
+    # OPERADOR -> OPERADOR_ARITMETICO | OPERADOR_RELACIONAL | OPERADOR_LOGICO
+    def visit_OPERADOR(self, node):
+        if not node.children:
+            return None
+        child = node.children[0].symbol
+        if child == "OPERADOR_ARITMETICO":
+            return "arit"
+        if child == "OPERADOR_RELACIONAL":
+            return "rel"
+        if child == "OPERADOR_LOGICO":
+            return "log"
+        return None
+
+    # TERMO -> id | valor_inteiro | valor_real | VALOR_BOOL | caractere | string
+    def visit_TERMO(self, node):
+        if not node.children:
+            return None
+        leaf = node.children[0]
+
+        if leaf.symbol == "id":
+            name = leaf.lexeme
+            sym = self.lookup(name)
+            if not sym:
+                self.error(f"Variável '{name}' usada mas não declarada")
+                node.type = None
+                return None
+            node.type = sym.tipo
+            return node.type
+
+        if leaf.symbol == "valor_inteiro":
+            node.type = "tralalero"
+            return node.type
+
+        if leaf.symbol == "valor_real":
+            node.type = "tralala"
+            return node.type
+
+        if leaf.symbol == "VALOR_BOOL":
+            node.type = "porcoala"
+            return node.type
+
+        if leaf.symbol == "caractere":
+            node.type = "porcodio"
+            return node.type
+
+        if leaf.symbol == "string":
+            node.type = "string"
+            return node.type
+
+        return None
+
+    def visit_VALOR_BOOL(self, node):
+        # tripi|tropa
+        node.type = "porcoala"
+        return node.type
+    
+    def print_table(self):
+        """
+        Imprime a tabela de símbolos organizada por escopo
+        """
+        print("\n📋 Tabela de Símbolos")
+        print("=" * 70)
         
-        if var_name not in _symbol_table:
-            error_msg = f"❌ Erro semântico (linha {line}): Leitura em variável '{var_name}' não declarada"
-            _symbol_table.errors.append(error_msg)
-            print(f"  {error_msg}")
-        else:
-            print(f"  ✓ Entrada válida para '{var_name}'")
-
-
-def _handle_output(node):
-    """SAIDA -> chimpanzini EXPRESSAO ;"""
-    if len(node.children) >= 2:
-        expr_node = node.children[1]
-        expr_type = _handle_expression(expr_node)
-        print(f"  ✓ Saída válida (tipo: {expr_type.value if expr_type else 'desconhecido'})")
-
-
-def _handle_decision(node):
-    """DECISAO -> lirili EXPRESSAO BLOCO ..."""
-    if len(node.children) >= 2:
-        expr_node = node.children[1]
-        expr_type = _handle_expression(expr_node)
+        if not self.symbols:
+            print("  (vazia)")
+            print("=" * 70)
+            return
         
-        if expr_type and expr_type != SymbolType.BOOL:
-            error_msg = f"❌ Erro semântico: Condição de decisão deve ser booleana, recebeu {expr_type.value}"
-            _symbol_table.errors.append(error_msg)
-            print(f"  {error_msg}")
-    
-    for child in node.children:
-        if child.symbol in ("BLOCO", "BLOCO_DECISAO", "BLOCO_REPETICAO", "DECISAO"):
-            _visit_node(child)
-
-
-def _handle_loop(node):
-    """LACO_DE_REPETICAO -> tung EXPRESSAO BLOCO"""
-    if len(node.children) >= 2:
-        expr_node = node.children[1]
-        expr_type = _handle_expression(expr_node)
+        # Agrupa símbolos por escopo
+        scopes = {}
+        for sym in self.symbols:
+            if sym.scope not in scopes:
+                scopes[sym.scope] = []
+            scopes[sym.scope].append(sym)
         
-        if expr_type and expr_type != SymbolType.BOOL:
-            error_msg = f"❌ Erro semântico: Condição de laço deve ser booleana, recebeu {expr_type.value}"
-            _symbol_table.errors.append(error_msg)
-            print(f"  {error_msg}")
-    
-    for child in node.children:
-        if child.symbol in ("BLOCO", "BLOCO_DECISAO", "BLOCO_REPETICAO"):
-            _visit_node(child)
-
-
-# ===== FUNÇÕES AUXILIARES =====
-
-def _extract_id_from_termo(termo_node):
-    """Extrai o identificador de um nó TERMO"""
-    if termo_node.children and termo_node.children[0].symbol == "id":
-        return termo_node.children[0].lexeme
-    return None
-
-
-def _extract_line(node):
-    """Extrai número de linha de um nó - verifica atributo 'line' ou busca em filhos terminais"""
-    # Primeiro tenta usar o atributo 'line' armazenado no nó
-    if hasattr(node, 'line') and node.line is not None and node.line != 0:
-        return node.line
-    
-    # Se não encontrou, busca recursivamente nos filhos (especialmente terminais)
-    if hasattr(node, 'children') and node.children:
-        for child in node.children:
-            line = _extract_line(child)
-            if line and line != 0:
-                return line
-    
-    # Se ainda não encontrou, retorna 0
-    return 0
+        # Imprime cada escopo
+        for scope_id in sorted(scopes.keys()):
+            scope_label = "global" if scope_id == 0 else f"local {scope_id}"
+            print(f"\n  Escopo {scope_id} ({scope_label}):")
+            for sym in scopes[scope_id]:
+                print(f"    {sym.name:20} | tipo: {sym.tipo:15}")
+        
+        print("\n" + "=" * 70)
